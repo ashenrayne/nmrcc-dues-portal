@@ -44,7 +44,8 @@ a {
   }
 
   table th {
-    background-color: lighten($secondary, 28%);
+    background-color: $secondary;
+    color: #fff;
   }
 }
 
