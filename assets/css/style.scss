@@ -7,7 +7,11 @@ $secondary: #88321d;
 
 .page-header {
   background-color: $primary;
-  background-image: linear-gradient(120deg, $primary, $secondary);
+  background-image:
+    linear-gradient(120deg, rgba($primary, 0.55), rgba($secondary, 0.55)),
+    url('https://ashenrayne.com/img/banner.jpg');
+  background-size: cover;
+  background-position: center;
 
   .btn {
     display: none;
@@ -27,7 +31,7 @@ a {
 }
 
 .main-content {
-  h1, h2 {
+  h1, h2, h3, h4, h5, h6 {
     color: darken($primary, 8%);
   }
 
