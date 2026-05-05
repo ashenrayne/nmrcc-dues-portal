@@ -71,9 +71,10 @@ After launch, NMRCC's ongoing cost has two parts: our support fee and AWS hostin
 
 ### Our support fee (billed to NMRCC initially)
 
-**Base platform support: $800 / month**
+**Base platform support: $900 / month**
 
 Includes:
+- NMRCC as a council
 - Production monitoring with on-call response during business hours (Mon – Fri, 8am – 6pm Eastern)
 - Up to 6 hours / month of small enhancements, bug fixes, and support questions (not cumulative)
 - Dependency and security patching on a quarterly cadence
@@ -83,7 +84,7 @@ Includes:
 
 Each council on the platform after the first adds modest operational overhead — additional monitoring scope, support volume, council-specific Stripe questions, branding adjustments, role tweaks, and so on. The first council is included in the base fee.
 
-So a platform with 5 active councils runs **$800 + (4 × $300) = $1,700 / month** in support.
+So a platform with 5 active councils runs **$900 + (4 × $300) = $2,000 / month** in support.
 
 **Per-council onboarding (one-time): $1,200**
 
