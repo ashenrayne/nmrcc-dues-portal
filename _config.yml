@@ -1,0 +1,22 @@
+title: Carpenter Council Payments Portal
+description: Proposal, scope, and technology stack for the NMRCC dues platform. Prepared by Ashen Rayne.
+theme: jekyll-theme-cayman
+
+# jekyll-relative-links rewrites in-document links like
+# [scope-document.md](scope-document.md) so they work once Jekyll renders
+# the .md files as .html on GitHub Pages.
+plugins:
+  - jekyll-relative-links
+
+relative_links:
+  enabled: true
+  collections: true
+
+include:
+  - "*.md"
+
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - vendor
