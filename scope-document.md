@@ -229,8 +229,6 @@ All items in section 3. A representative sequencing is:
 9. Pilot with one council: hardening, training, support runbook, incident response process
 10. Broader rollout
 
-A detailed timeline and resource plan will accompany the signed scope.
-
 ### Phase 2
 
 - External approval plugin framework with one or more concrete external system integrations (target system to be identified)
@@ -327,7 +325,3 @@ Items not enumerated in section 3 are not part of the MVP. Requests to add to sc
 - **SAQ-A** — the lowest-burden PCI compliance level, applicable when card data does not touch platform servers
 - **Approval plugin** — a pluggable component implementing a payment approval workflow; the MVP ships an internal plugin and Phase 2 adds external plugins
 - **Pending approval** — payment state after Stripe success but before bookkeeper sign-off; not yet credited as a valid contribution
-
----
-
-*End of document.*

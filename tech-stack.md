@@ -212,7 +212,3 @@ These remain open and will be resolved during discovery or before the relevant w
 - **Observability stack**: CloudWatch-only vs. Datadog (or similar) overlay. Driven by UBC's existing observability tooling.
 - **AWS Region**: needs confirmation per council geography. Likely `us-east-1` or `us-east-2` for US councils and `ca-central-1` for Canadian councils, with a single multi-region deployment if data residency rules require it. Open question for UBC.
 - **Compliance attestations** (SOC2, etc.): UBC may require us to operate within their existing attestation boundary, which can constrain tooling choices.
-
----
-
-*End of document.*
