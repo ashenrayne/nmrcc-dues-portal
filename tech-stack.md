@@ -1,4 +1,4 @@
-# Carpenter Council Payments Portal — Technology Stack
+# Carpenter Council Payments Portal: Technology Stack
 
 **Document type:** Internal technology stack and infrastructure plan
 **Companion to:** [scope-document.md](scope-document.md)
@@ -15,7 +15,7 @@ This document records the technology choices for building the Carpenter Council 
 Two constraints shape the entire stack:
 
 - **AWS-native from day one.** The platform launches on an AWS account we manage, with NMRCC funding the AWS hosting costs while the platform serves only NMRCC. If UBC later elects to host the platform internally for broader council adoption, hosting transitions into UBC's AWS organization at that time.
-- **Designed to migrate between AWS accounts without code changes.** Everything is Infrastructure-as-Code, no account IDs are hardcoded, secrets live in Secrets Manager, and storage / DB names are parameterized — so the eventual move into UBC's account (if it happens) is a configuration change, not a re-architecture.
+- **Designed to migrate between AWS accounts without code changes.** Everything is Infrastructure-as-Code, no account IDs are hardcoded, secrets live in Secrets Manager, and storage / DB names are parameterized, so the eventual move into UBC's account (if it happens) is a configuration change, not a re-architecture.
 
 ---
 
@@ -23,16 +23,16 @@ Two constraints shape the entire stack:
 
 ### 2.1 Frontend and Backend (one codebase)
 
-- **Next.js 15 (App Router) + TypeScript** — single codebase for both the member portal and the admin/bookkeeper experience. Route groups separate the two surfaces.
-- **shadcn/ui + Tailwind CSS** — composable component primitives for the design system. Per-council branding is applied via CSS variables.
-- **TanStack Table** — powers the payments list, approval queue, member list, and any other dense tabular admin view. Required for the bulk actions, saved filters, and keyboard navigation called for in scope sections 3.6 and 3.8.
-- **React Hook Form + Zod** — forms and end-to-end schema validation; the same Zod schemas are reused in server actions to enforce invariants at the trust boundary.
+- **Next.js 15 (App Router) + TypeScript**: single codebase for both the member portal and the admin/bookkeeper experience. Route groups separate the two surfaces.
+- **shadcn/ui + Tailwind CSS**: composable component primitives for the design system. Per-council branding is applied via CSS variables.
+- **TanStack Table**: powers the payments list, approval queue, member list, and any other dense tabular admin view. Required for the bulk actions, saved filters, and keyboard navigation called for in scope sections 3.6 and 3.8.
+- **React Hook Form + Zod**: forms and end-to-end schema validation; the same Zod schemas are reused in server actions to enforce invariants at the trust boundary.
 
 ### 2.2 Server Logic
 
 - **Next.js route handlers** for Stripe webhooks and any third-party-callable endpoints.
 - **Next.js server actions** for admin and member mutations (refunds, approvals, payment method updates, settings).
-- **Node runtime only** — no Edge runtime. Keeps deployment portable to ECS/Fargate without a runtime rewrite.
+- **Node runtime only**: no Edge runtime. Keeps deployment portable to ECS/Fargate without a runtime rewrite.
 
 ---
 
@@ -61,7 +61,7 @@ We deliberately do not use Supabase Auth, Cognito, or any other hosted identity 
 
 ## 5. Payments Integration
 
-- **Stripe Connect (Standard accounts)** — each council registers one or more Stripe Connect Standard accounts. Each local on the platform is configured to receive its payments through one of the council's accounts (the default) or — if the local operates with financial independence — through its own Stripe account. The data model treats the Stripe-account assignment as a property of the local, with the council holding the catalog of available accounts. The platform is the Connect platform but does not take custody of funds.
+- **Stripe Connect (Standard accounts)**: each council registers one or more Stripe Connect Standard accounts. Each local on the platform is configured to receive its payments through one of the council's accounts (the default) or, if the local operates with financial independence, through its own Stripe account. The data model treats the Stripe-account assignment as a property of the local, with the council holding the catalog of available accounts. The platform is the Connect platform but does not take custody of funds.
 - **Stripe Node SDK** for all server-side calls.
 - **Stripe Elements / Checkout** for card capture in the browser. Card data never touches our servers; PCI scope stays at SAQ-A.
 - **Stripe Subscriptions** for recurring payments. Fixed-amount because dues are fixed per member per period (scope section 3.4).
@@ -118,7 +118,7 @@ If UBC has a policy concern about a third-party SaaS handling job orchestration,
 
 ### 7.5 Email and Notifications
 
-- **Outbound SMTP via UBC's internal mail relay**, using Nodemailer in the application. UBC's existing relay handles delivery, DKIM, SPF, DMARC, and IP reputation — the same infrastructure that already serves UBC's Drupal sites.
+- **Outbound SMTP via UBC's internal mail relay**, using Nodemailer in the application. UBC's existing relay handles delivery, DKIM, SPF, DMARC, and IP reputation, the same infrastructure that already serves UBC's Drupal sites.
 - Templated per council with custom branding via the application's email templates.
 - No third-party email provider (Postmark, SES) required for the MVP. SMTP relay address, sending domain, and authentication method to be confirmed with UBC during discovery.
 
@@ -150,8 +150,8 @@ If UBC has a policy concern about a third-party SaaS handling job orchestration,
 
 ### 9.2 Environments
 
-- **Development** — shared, hits Stripe test mode.
-- **Production** — live, hits Stripe live mode, Multi-AZ RDS, autoscaling enabled.
+- **Development**: shared, hits Stripe test mode.
+- **Production**: live, hits Stripe live mode, Multi-AZ RDS, autoscaling enabled.
 - A staging environment may be added if pilot feedback indicates value; not in MVP.
 - Per-PR preview environments are out of scope for MVP given the data-isolation considerations of a financial system.
 

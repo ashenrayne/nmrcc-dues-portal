@@ -1,4 +1,4 @@
-# Carpenter Council Payments Portal — Project Scope
+# Carpenter Council Payments Portal: Project Scope
 
 **Document type:** Client-facing scope of work
 **Prepared by:** Ashen Rayne
@@ -23,7 +23,9 @@ This is a financial system handling member dues across multiple legal entities. 
 
 ### 2.1 Background
 
-UBC councils and locals currently process member dues through a mixture of in-person collection, mailed checks, and ad-hoc digital methods that vary by council. This produces inconsistent member experience, manual reconciliation work for bookkeepers, limited visibility into delinquencies, and no shared platform for reporting across councils.
+UBC councils and locals already accept member dues through a range of channels (in-person, mailed checks, and one or another online method), with the specific mix varying by council. Online payment is part of the picture today; what is missing is a consistent online experience across councils and locals, and the operational tooling around it.
+
+This platform is focused specifically on the **online** portion of dues collection. It is not intended to replace in-person or mail-in payment, and it does not change how councils handle those channels. Its goal is to simplify and unify how members pay dues online (one familiar experience regardless of which council or local they belong to) and to give councils and locals a stronger reporting, reconciliation, and collection workflow for the payments that flow through it.
 
 ### 2.2 Project Goals
 
@@ -55,21 +57,21 @@ The MVP will be considered successful if:
 The platform supports a hierarchy of tenants:
 
 - **Councils** are the top-level tenant. Each council operates an independent environment with one or more Stripe Connect accounts, branding, settings, member roster, and admin users. A council can register multiple Stripe accounts to organize payments by region, fund type, or any other meaningful split.
-- **Locals** are sub-tenants of a council. Each local is configured to receive its payments through one of the council's Stripe accounts, or — if the local operates with financial independence — its own Stripe account. Locals inherit certain settings from their council and override others.
+- **Locals** are sub-tenants of a council. Each local is configured to receive its payments through one of the council's Stripe accounts, or (if the local operates with financial independence) its own Stripe account. Locals inherit certain settings from their council and override others.
 
 Tenant isolation is enforced at the data access layer such that no admin or member can see data from another council or unrelated local. This is verified through automated tests as well as manual review.
 
-Each council receives a distinct subdomain or path-based URL (final pattern to be confirmed during design). Light branding — logo, name, accent color, sender name on emails — is configurable per council.
+Each council receives a distinct subdomain or path-based URL (final pattern to be confirmed during design). Light branding (logo, name, accent color, sender name on emails) is configurable per council.
 
 ### 3.2 Authentication and Member Identity
 
 Members authenticate via the UBC single sign-on. The portal does not manage passwords for members. On first sign-in, a member record is provisioned in the relevant council and local based on UBC's response.
 
-The portal queries UBC to retrieve the member's current dues balance, including any past-due amount. The exact contract for this query — endpoint, authentication, fields returned, refresh frequency — is dependent on UBC documentation and will be confirmed in the discovery phase. The portal treats UBC as the source of truth for what is owed; the portal is the source of truth for what has been paid through the platform.
+The portal queries UBC to retrieve the member's current dues balance, including any past-due amount. The exact contract for this query (endpoint, authentication, fields returned, refresh frequency) is dependent on UBC documentation and will be confirmed in the discovery phase. The portal treats UBC as the source of truth for what is owed; the portal is the source of truth for what has been paid through the platform.
 
 Admins authenticate through a separate flow appropriate to their role (details in section 3.9).
 
-### 3.3 Payment Processing — Stripe
+### 3.3 Payment Processing: Stripe
 
 Stripe is the payments provider for the MVP. Each council configures one or more Stripe accounts via Stripe Connect using Standard connected accounts, which preserves the council's direct relationship with Stripe and minimizes compliance burden on the platform.
 
@@ -109,7 +111,7 @@ A signed-in member can:
 
 ### 3.6 Admin Experience
 
-Council and local admins (and bookkeepers — see section 3.9) have access to a dashboard scoped to their council or local. Capabilities include:
+Council and local admins (and bookkeepers; see section 3.9) have access to a dashboard scoped to their council or local. Capabilities include:
 
 - A payments list showing all payment records, filterable by date range, status (succeeded, failed, refunded, pending approval, approved, rejected), payment method, member, local, and amount
 - Saved filter views per user
@@ -117,7 +119,7 @@ Council and local admins (and bookkeepers — see section 3.9) have access to a 
 - Drill-down to a specific payment, showing the full event timeline (initiated, charged, webhook received, approved, receipt sent, etc.) and links to the underlying Stripe charge for support purposes
 - Member view: search and filter members, see member detail, view a member's payment history and recurring schedule, issue a refund or credit (subject to permission)
 - Council settings (council admin only): branding, notification copy, approval policy, Stripe accounts (add, configure, and assign to locals), role assignments
-- Local settings (local admin only, where applicable): local branding overrides, contact information, and — if the local operates its own Stripe account — the configuration for that account
+- Local settings (local admin only, where applicable): local branding overrides, contact information, and (if the local operates its own Stripe account) the configuration for that account
 
 ### 3.7 Refunds, Adjustments, and Credits
 
@@ -127,7 +129,7 @@ Credits (applying a balance to a future payment rather than refunding cash) are 
 
 ### 3.8 Payment Approval Workflow
 
-Each council can enable an internal approval workflow under which every successful payment — both one-time and each occurrence of a recurring payment — must be marked as approved by a bookkeeper before the payment is recorded as a valid contribution to the member's record.
+Each council can enable an internal approval workflow under which every successful payment (both one-time and each occurrence of a recurring payment) must be marked as approved by a bookkeeper before the payment is recorded as a valid contribution to the member's record.
 
 The approval workflow is built on a pluggable interface from day one. The MVP ships with an **internal approval plugin** that places payments into a queue for designated bookkeepers to review. The same interface will accommodate external approval plugins in Phase 2 without rework.
 
@@ -161,7 +163,7 @@ Permissions are stored as flags so that custom role variants can be created if a
 
 ### 3.10 Notifications
 
-Transactional emails sent by the platform include payment receipts (sent immediately on successful charge), payment failures, upcoming recurring charges (especially for ACH), expiring card warnings, past-due notices, and recurring canceled or completed. Each email is templated with per-council branding and customizable copy. Email delivery is handled by a transactional email provider (final selection during design — likely Postmark or similar).
+Transactional emails sent by the platform include payment receipts (sent immediately on successful charge), payment failures, upcoming recurring charges (especially for ACH), expiring card warnings, past-due notices, and recurring canceled or completed. Each email is templated with per-council branding and customizable copy. Email delivery is handled by a transactional email provider (final selection during design, likely Postmark or similar).
 
 SMS notifications are out of scope for the MVP.
 
@@ -197,24 +199,24 @@ The platform is delivered as a responsive web application that works on modern d
 
 The following are explicitly excluded from the MVP. Items marked **Phase 2** are planned for the next phase; others are deferred or excluded entirely.
 
-- **External approval plugins** — Phase 2. The internal approval plugin ships in MVP; external plugins for third-party systems of record ship in Phase 2.
-- **Additional payment providers** — Stripe is the sole provider for MVP. The data model and service boundaries are designed to allow another provider to slot in later, but no second provider is implemented.
-- **Cross-currency operations** — a member transacts in a single currency (their council's currency). The platform does not convert between USD and CAD or perform cross-border settlement. Multi-currency support means each council settles in its own currency, not that any individual member or transaction is multi-currency.
-- **Manual / offline payment recording** — the platform tracks digital payments only. Checks, cash, and money orders received outside the platform are not entered into the system; councils continue to handle those through their existing bookkeeping processes.
-- **Native mobile applications** — responsive web only.
-- **In-app messaging between members and admins** — email is the communication channel.
+- **External approval plugins**: Phase 2. The internal approval plugin ships in MVP; external plugins for third-party systems of record ship in Phase 2.
+- **Additional payment providers**: Stripe is the sole provider for MVP. The data model and service boundaries are designed to allow another provider to slot in later, but no second provider is implemented.
+- **Cross-currency operations**: a member transacts in a single currency (their council's currency). The platform does not convert between USD and CAD or perform cross-border settlement. Multi-currency support means each council settles in its own currency, not that any individual member or transaction is multi-currency.
+- **Manual / offline payment recording**: the platform tracks digital payments only. Checks, cash, and money orders received outside the platform are not entered into the system; councils continue to handle those through their existing bookkeeping processes.
+- **Native mobile applications**: responsive web only.
+- **In-app messaging between members and admins**: email is the communication channel.
 - **SMS notifications.**
-- **Member-to-member features, forums, content** — this is a payments portal, not a member portal.
-- **Full general-ledger accounting** — the platform produces reconciliation reports; it does not replace council bookkeeping software.
+- **Member-to-member features, forums, content**: this is a payments portal, not a member portal.
+- **Full general-ledger accounting**: the platform produces reconciliation reports; it does not replace council bookkeeping software.
 - **Migration of historical payment data** from prior systems.
-- **White-label custom domains per council** beyond a configurable subdomain — Phase 2.
-- **Custom report builder** — standard reports are included; ad-hoc report building is Phase 2.
+- **White-label custom domains per council** beyond a configurable subdomain (Phase 2).
+- **Custom report builder**: standard reports are included; ad-hoc report building is Phase 2.
 
 ---
 
 ## 5. Phasing
 
-### Phase 1 — MVP
+### Phase 1: MVP
 
 All items in section 3. A representative sequencing is:
 
@@ -314,14 +316,14 @@ Items not enumerated in section 3 are not part of the MVP. Requests to add to sc
 
 ---
 
-## Appendix A — Glossary
+## Appendix A: Glossary
 
-- **Council** — top-level UBC organizational unit and tenant on the platform
-- **Local** — sub-unit of a council; sub-tenant on the platform
-- **UBC SSO** — United Brotherhood of Carpenters single sign-on, providing member identity and dues balance information
-- **Stripe Connect** — Stripe's platform offering supporting multiple connected merchant accounts under one platform
-- **Standard connected account** — a Stripe Connect account model where the council retains direct ownership of their Stripe relationship
-- **Smart Retries** — Stripe-managed retry logic for failed payments
-- **SAQ-A** — the lowest-burden PCI compliance level, applicable when card data does not touch platform servers
-- **Approval plugin** — a pluggable component implementing a payment approval workflow; the MVP ships an internal plugin and Phase 2 adds external plugins
-- **Pending approval** — payment state after Stripe success but before bookkeeper sign-off; not yet credited as a valid contribution
+- **Council**: top-level UBC organizational unit and tenant on the platform
+- **Local**: sub-unit of a council; sub-tenant on the platform
+- **UBC SSO**: United Brotherhood of Carpenters single sign-on, providing member identity and dues balance information
+- **Stripe Connect**: Stripe's platform offering supporting multiple connected merchant accounts under one platform
+- **Standard connected account**: a Stripe Connect account model where the council retains direct ownership of their Stripe relationship
+- **Smart Retries**: Stripe-managed retry logic for failed payments
+- **SAQ-A**: the lowest-burden PCI compliance level, applicable when card data does not touch platform servers
+- **Approval plugin**: a pluggable component implementing a payment approval workflow; the MVP ships an internal plugin and Phase 2 adds external plugins
+- **Pending approval**: payment state after Stripe success but before bookkeeper sign-off; not yet credited as a valid contribution

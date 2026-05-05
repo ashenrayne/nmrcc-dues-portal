@@ -1,8 +1,8 @@
-# Carpenter Council Payments Portal — Proposal for NMRCC
+# Carpenter Council Payments Portal: Proposal for NMRCC
 
 **Prepared for:** Northern Midwest Regional Council of Carpenters (NMRCC)
 **Prepared by:** Ashen Rayne
-**Date:** May 4, 2026
+**Date:** May 5, 2026
 
 ---
 
@@ -23,11 +23,11 @@ Numbers below are estimates based on the scope as currently written. If scope ch
 
 ## What we're building, in one paragraph
 
-A multi-tenant payments portal for NMRCC and, eventually, other UBC councils and their locals. Members sign in through UBC SSO, see what they owe, and pay by card or bank debit — one-time or on a recurring schedule. Council and local admins get scoped dashboards for managing members, processing payments, running reconciliation, and (optionally) approving each payment through an internal bookkeeper queue. US councils transact in USD; Canadian councils in CAD. The platform is built on AWS, designed so hosting can move into UBC's environment if and when UBC elects to take it on. Full detail lives in the scope document.
+A multi-tenant payments portal for NMRCC and, eventually, other UBC councils and their locals. Members sign in through UBC SSO, see what they owe, and pay by card or bank debit, one-time or on a recurring schedule. Council and local admins get scoped dashboards for managing members, processing payments, running reconciliation, and (optionally) approving each payment through an internal bookkeeper queue. US councils transact in USD; Canadian councils in CAD. The platform is built on AWS, designed so hosting can move into UBC's environment if and when UBC elects to take it on. Full detail lives in the scope document.
 
 ---
 
-## Phase 1 — MVP
+## Phase 1: MVP
 
 **Estimated cost: $35,000 – $45,000**
 **Estimated timeline: 6 – 8 weeks from kickoff**
@@ -51,7 +51,7 @@ What keeps us toward the **lower end**: UBC providing a clean OIDC contract with
 
 ---
 
-## Phase 2 — External Approval Framework
+## Phase 2: External Approval Framework
 
 **Estimated cost: $10,000 – $15,000 for the framework + one concrete integration**
 **Each additional external system integration: $3,000 – $5,000**
@@ -82,7 +82,7 @@ Includes:
 
 **Per active council: $300 / month**
 
-Each council on the platform after the first adds modest operational overhead — additional monitoring scope, support volume, council-specific Stripe questions, branding adjustments, role tweaks, and so on. The first council is included in the base fee.
+Each council on the platform after the first adds modest operational overhead: additional monitoring scope, support volume, council-specific Stripe questions, branding adjustments, role tweaks, and so on. The first council is included in the base fee.
 
 So a platform with 5 active councils runs **$900 + (4 × $300) = $2,000 / month** in support.
 
@@ -92,7 +92,7 @@ Each new council added after the pilot involves Stripe Connect onboarding assist
 
 **Out-of-scope work: $150 / hour**
 
-Anything beyond the included monthly hours, or work that doesn't fit a small enhancement (new report, new integration, custom workflow), is quoted hourly or as a fixed-price change order — your choice.
+Anything beyond the included monthly hours, or work that doesn't fit a small enhancement (new report, new integration, custom workflow), is quoted hourly or as a fixed-price change order. Your choice.
 
 ### AWS hosting
 
@@ -107,16 +107,16 @@ Approximate monthly hosting cost at NMRCC pilot scale:
 | Application Load Balancer | $25 – $30 |
 | NAT Gateway | $35 – $45 |
 | S3, Secrets Manager, Route 53, CloudWatch | $15 – $40 |
-| Inngest (background jobs — free tier covers pilot volume) | $0 – $50 |
+| Inngest (background jobs; free tier covers pilot volume) | $0 – $50 |
 | **Estimated total at NMRCC pilot scale** | **$160 – $305 / month** |
 
 Email delivery is handled through UBC's existing internal mail relay throughout, so there's no separate email-provider line item.
 
-If the platform is later adopted by additional councils and hosting moves to UBC, that broader scale — stepping up to a db.t4g.medium Multi-AZ database, autoscaled application tasks, and a paid Inngest tier — would likely run **$500 – $1,000 / month** in AWS costs, billed to UBC at that point. We size everything for cost efficiency and can review as needed.
+If the platform is later adopted by additional councils and hosting moves to UBC, that broader scale (stepping up to a db.t4g.medium Multi-AZ database, autoscaled application tasks, and a paid Inngest tier) would likely run **$500 – $1,000 / month** in AWS costs, billed to UBC at that point. We size everything for cost efficiency and can review as needed.
 
 **One-time migration fee (only if hosting moves to UBC): $2,400 – $3,600**
 
-Moving the platform from our AWS account into UBC's AWS account is a planned, runbook-driven exercise — not a re-architecture — because the platform is built from day one to support exactly this transition. The work covers standing up infrastructure in UBC's account, copying the database, syncing files, re-pointing DNS, and validating end to end. It runs 16 – 24 hours of work over 1 – 2 weeks of preparation, with a single 2 – 4 hour planned downtime window at cutover.
+Moving the platform from our AWS account into UBC's AWS account is a planned, runbook-driven exercise, not a re-architecture, because the platform is built from day one to support exactly this transition. The work covers standing up infrastructure in UBC's account, copying the database, syncing files, re-pointing DNS, and validating end to end. It runs 16 – 24 hours of work over 1 – 2 weeks of preparation, with a single 2 – 4 hour planned downtime window at cutover.
 
 **Impact on members and active payments during the migration:** minimal. The councils' Stripe accounts are not part of the AWS environment, so active recurring payments continue charging on Stripe's schedule throughout the migration. Members do not need to re-enter payment methods, re-authorize, or take any action. The only member-visible impact is a short maintenance window during which new one-time payments cannot be made; any recurring renewals scheduled during that window still run, and members receive their receipts as normal.
 
@@ -126,12 +126,12 @@ This fee is invoiced to whichever party is taking on hosting going forward, and 
 
 ## What's not included
 
-- **AWS hosting costs** — billed to NMRCC during the initial NMRCC-only period; transition to UBC if and when UBC elects to host the platform internally. See the AWS hosting section above for current ranges.
-- **AWS account migration fee** — only incurred if and when hosting moves into UBC's AWS environment. Estimated at $2,400 – $3,600; see the AWS hosting section above.
-- **Stripe processing fees** — paid by each council directly to Stripe. The platform takes no application fee.
-- **UBC integration costs** — if UBC needs work on their side to expose SSO or dues balance APIs, that's outside this scope and is handled directly between UBC and NMRCC.
-- **Legal and compliance review** — each council is responsible for their own merchant agreements, terms of service, and any state or provincial registrations.
-- **Historical data migration** — if NMRCC has prior digital payment data to import, that's a separate engagement we'll quote once the source is known.
+- **AWS hosting costs**: billed to NMRCC during the initial NMRCC-only period; transition to UBC if and when UBC elects to host the platform internally. See the AWS hosting section above for current ranges.
+- **AWS account migration fee**: only incurred if and when hosting moves into UBC's AWS environment. Estimated at $2,400 – $3,600; see the AWS hosting section above.
+- **Stripe processing fees**: paid by each council directly to Stripe. The platform takes no application fee.
+- **UBC integration costs**: if UBC needs work on their side to expose SSO or dues balance APIs, that's outside this scope and is handled directly between UBC and NMRCC.
+- **Legal and compliance review**: each council is responsible for their own merchant agreements, terms of service, and any state or provincial registrations.
+- **Historical data migration**: if NMRCC has prior digital payment data to import, that's a separate engagement we'll quote once the source is known.
 
 ---
 
