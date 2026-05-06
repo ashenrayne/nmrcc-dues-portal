@@ -61,7 +61,12 @@ The platform supports a hierarchy of tenants:
 
 Tenant isolation is enforced at the data access layer such that no admin or member can see data from another council or unrelated local. This is verified through automated tests as well as manual review.
 
-Each council receives a distinct subdomain or path-based URL (final pattern to be confirmed during design). Light branding (logo, name, accent color, sender name on emails) is configurable per council.
+Each council is reachable through one or both of the following surfaces:
+
+- A council-scoped URL on a central UBC dues subdomain (e.g., `dues.carpenters.org/nmrcc` or `nmrcc.dues.carpenters.org`; final pattern to be confirmed during design)
+- A per-council CNAME subdomain (e.g., `dues.nmrcc.org`) pointed at the platform's infrastructure, for councils that want a fully council-branded URL
+
+Each council selects during onboarding which surface(s) to enable; both can be active simultaneously. The platform handles TLS certificate provisioning and renewal for either pattern. Light branding (logo, name, accent color, sender name on emails) is configurable per council and applies consistently across all delivery surfaces. Distribution, embedding, and mobile integration patterns are described in section 3.14.
 
 ### 3.2 Authentication and Member Identity
 
@@ -163,7 +168,7 @@ Permissions are stored as flags so that custom role variants can be created if a
 
 ### 3.10 Notifications
 
-Transactional emails sent by the platform include payment receipts (sent immediately on successful charge), payment failures, upcoming recurring charges (especially for ACH), expiring card warnings, past-due notices, and recurring canceled or completed. Each email is templated with per-council branding and customizable copy. Email delivery is handled by a transactional email provider (final selection during design, likely Postmark or similar).
+Transactional emails sent by the platform include payment receipts (sent immediately on successful charge), payment failures, upcoming recurring charges (especially for ACH), expiring card warnings, past-due notices, and recurring canceled or completed. Each email is templated with per-council branding and customizable copy. Email delivery is via UBC's existing internal mail relay; the platform sends through UBC's relay rather than a separate third-party email provider. Relay configuration (address, port, authentication, sending domain) is confirmed during discovery.
 
 SMS notifications are out of scope for the MVP.
 
@@ -171,7 +176,7 @@ SMS notifications are out of scope for the MVP.
 
 Three distinct logging channels are established:
 
-- **Application logs** for engineering: errors, performance, request traces. Routed to a managed logging service.
+- **Application logs** for engineering: errors, performance, request traces. Routed to AWS CloudWatch Logs.
 - **Audit log** for compliance and trust: who did what, when, with what reason. Visible to admins, immutable, exportable. Includes role assignments, refunds, credit adjustments, approvals and reversals, settings changes, and login events.
 - **Payment event log** for support and ops: every Stripe webhook, every charge attempt, every state transition on a payment, with full payload preserved. Critical for investigating individual member issues.
 
@@ -191,7 +196,41 @@ Standard reports included in the MVP:
 
 ### 3.13 Responsive Web
 
-The platform is delivered as a responsive web application that works on modern desktop and mobile browsers. A native mobile app is out of scope for the MVP.
+The platform is delivered as a responsive web application that works on modern desktop and mobile browsers. The MVP does not include a native mobile app built by Ashen Rayne. Integration with UBC's existing React Native app is supported as described in section 3.14.
+
+### 3.14 Delivery Surfaces, Embedding, and Mobile Integration
+
+The platform reaches members through three coordinated surfaces. All share authentication, payment data, audit logging, and per-council branding.
+
+**1. Hosted portal (primary surface).** The portal lives at the URL(s) configured in section 3.1: a central UBC dues subdomain, a per-council CNAME subdomain, or both. SSO and Stripe operate in their normal top-level browser context, with no third-party cookie or framing concerns.
+
+The **central UBC dues URL** (e.g., `dues.carpenters.org`) serves as the canonical entry point for members who don't know their council's path or who arrived through a generic UBC link. Anonymous visitors see:
+
+- A brief explainer of the program (what the platform does, what payment methods are accepted, where to get help)
+- A directory of participating councils, each linking to its council surface
+- A prominent "Sign in" call-to-action for members
+
+Signing in from the central URL triggers UBC SSO. On successful return, the platform reads the member's council association from the SSO claims (the same claim referenced in section 3.2) and redirects the member to the correct council surface. If the SSO claims do not include a council association (edge case to be confirmed during discovery), the platform shows a council picker as a fallback. The central URL also hosts:
+
+- Council admin sign-in, as a separate entry distinct from the member SSO flow (per section 3.9 roles)
+- Stripe Connect OAuth callbacks for council onboarding
+- A system status link and support contact information
+
+A **council surface** (e.g., `nmrcc.dues.carpenters.org`, `dues.carpenters.org/nmrcc`, or a CNAME like `dues.nmrcc.org`) lands a member directly in the council-branded experience without going through the directory. SSO from a council surface is scoped to that council, and the member proceeds straight to balance and payment.
+
+**2. Embedded "Pay Dues" widget for council websites.** Each council can drop a small JavaScript snippet into their own website to expose dues functionality without visually leaving the council site. The widget renders branded entry points (a "Pay Dues" button, an optional balance summary card, or both) and opens the full SSO and payment flow in a top-level navigation or popup. A `postMessage` callback notifies the embedding page when the flow completes (success, cancel, or error).
+
+In-page iframe payment is explicitly not supported because third-party cookie restrictions in modern browsers (Safari ITP, Chrome's cookie phase-out) silently break SSO and Stripe sessions inside iframes. The widget approach gives the embedded look-and-feel without the reliability risk.
+
+**3. UBC mobile app integration (system-browser handoff).** For UBC's React Native app, the platform supports a system-browser handoff pattern using Safari View Controller on iOS and Chrome Custom Tabs on Android:
+
+- The UBC app exposes a "Pay Dues" entry that opens the portal in the OS browser
+- The member completes SSO and payment in a real browser context, with full cookie support and Stripe SDK behavior identical to the web experience
+- The portal deep-links back to the UBC app on completion, with a status payload (success, cancel, or error)
+
+In-app WebView payment is explicitly not supported. Mobile WebViews have stricter cookie isolation than even mobile Safari, and Stripe's guidance discourages running Stripe Elements inside an app WebView for PCI scrutiny reasons. Native in-app payment via the Stripe React Native SDK (with a corresponding authenticated platform API) is a Phase 2 candidate if UBC's app team wants an experience that feels fully native.
+
+The MVP exposes the public surface needed for these patterns: stable URLs, deep-link return, and a small `postMessage` event surface for the widget. It does not yet expose a general-purpose authenticated API for native callers.
 
 ---
 
@@ -203,7 +242,9 @@ The following are explicitly excluded from the MVP. Items marked **Phase 2** are
 - **Additional payment providers**: Stripe is the sole provider for MVP. The data model and service boundaries are designed to allow another provider to slot in later, but no second provider is implemented.
 - **Cross-currency operations**: a member transacts in a single currency (their council's currency). The platform does not convert between USD and CAD or perform cross-border settlement. Multi-currency support means each council settles in its own currency, not that any individual member or transaction is multi-currency.
 - **Manual / offline payment recording**: the platform tracks digital payments only. Checks, cash, and money orders received outside the platform are not entered into the system; councils continue to handle those through their existing bookkeeping processes.
-- **Native mobile applications**: responsive web only.
+- **Native mobile applications built by Ashen Rayne**: the MVP does not include a separate iOS or Android app. The platform does support UBC's existing React Native app via the system-browser handoff pattern in section 3.14. Native in-app payment via the Stripe React Native SDK is a Phase 2 candidate.
+- **In-page iframe payment** in council websites: see section 3.14 for the supported widget pattern.
+- **In-app WebView payment** in UBC's React Native app: see section 3.14 for the supported system-browser handoff.
 - **In-app messaging between members and admins**: email is the communication channel.
 - **SMS notifications.**
 - **Member-to-member features, forums, content**: this is a payments portal, not a member portal.
@@ -249,9 +290,12 @@ The estimates and approach in this document depend on the following assumptions.
 - Dues amounts are fixed per member per billing period and do not change on a regular basis. Annual or occasional rate changes are applied to subscriptions on the next billing cycle.
 - The MVP supports both US and Canadian councils. US councils settle in USD via US Stripe accounts; Canadian councils settle in CAD via Canadian Stripe accounts. Each council operates in a single currency.
 - Each council can complete Stripe Connect onboarding (including business verification) for their own account(s). The platform facilitates this but cannot complete it on the council's behalf.
+- Councils that elect a per-council CNAME subdomain provide the DNS configuration (CNAME record pointing at the platform's endpoint).
+- Councils that want the embedded "Pay Dues" widget on their site provide the integration point (where the snippet is placed) and any non-default styling requirements.
+- UBC's React Native app team provides the deep-link or Universal Link configuration that the platform redirects to on payment completion, plus the in-app entry point that opens the system browser.
 - The platform charges no per-transaction application fee in the MVP unless agreed otherwise; transaction-fee economics flow directly between councils and Stripe.
 - The pilot council has identified bookkeepers willing to operate the approval queue and provide feedback during pilot.
-- Hosting will be on a major cloud provider (AWS, GCP, or Azure) selected during design. Likely provided by the UBC.
+- Hosting is on AWS, in an account managed by Ashen Rayne. The architecture supports a future move to UBC's AWS organization without code changes if UBC elects to host the platform internally.
 
 ---
 
@@ -267,6 +311,8 @@ The estimates and approach in this document depend on the following assumptions.
 | PCI scope creep | Medium | Card data handled exclusively via Stripe Elements / Checkout; no card data on platform servers; periodic review |
 | A local's Stripe account assignment changes mid-flight (between council accounts, or to/from a local-owned account) | Medium | Stripe subscriptions cannot move between accounts; document a migration procedure that cancels and recreates active recurring payments with member consent and clear notification |
 | External approval system (Phase 2) outage stalls payment finalization | Medium | Manual override always available; configurable timeout fallback (auto-approve, auto-reject, or manual queue); clear shared-responsibility documentation |
+| Third-party cookie restrictions in browsers and mobile WebViews break embedded SSO sessions | Medium-high if iframes/WebViews are used | The platform avoids in-frame payment entirely: top-level navigation or popup for council site embeds, system-browser handoff for the UBC mobile app (see section 3.14). Both patterns sidestep the third-party cookie surface |
+| UBC mobile app deep-link configuration drifts after a UBC app update, breaking return-to-app on payment completion | Low | Deep-link target is configurable in the platform admin; UBC app and platform agree on a versioned link scheme; smoke test included in UBC's release checklist |
 
 ---
 
@@ -280,9 +326,9 @@ A more detailed architecture document will be produced during discovery. At a hi
 - Stripe integration via Stripe Connect (Standard accounts), Stripe Elements / Checkout for card capture, Stripe webhooks for event ingestion
 - An asynchronous job system for sending notifications, processing webhooks, generating reports, and running scheduled reconciliations
 - An approval plugin interface implemented by an internal plugin in MVP, designed to support external plugins in Phase 2
-- A transactional email service for member and admin notifications
-- Logging, audit, and metrics pipelines feeding a managed observability stack
-- A managed cloud hosting environment with separate development, and production environments
+- Outbound email via UBC's internal SMTP relay for member and admin notifications
+- Logging, audit, and metrics pipelines feeding AWS CloudWatch (with optional forwarding to a managed log aggregator)
+- AWS-hosted infrastructure with separate development and production environments (see the technology stack document for specifics)
 
 ---
 
