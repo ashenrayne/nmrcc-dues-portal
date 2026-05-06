@@ -232,6 +232,46 @@ In-app WebView payment is explicitly not supported. Mobile WebViews have stricte
 
 The MVP exposes the public surface needed for these patterns: stable URLs, deep-link return, and a small `postMessage` event surface for the widget. It does not yet expose a general-purpose authenticated API for native callers.
 
+### 3.15 Lifecycle Events: Mergers, Dissolutions, and Reassignments
+
+Councils, locals, and members are not static. Councils occasionally merge, locals close or are reorganized, and members move between locals. The MVP supports these lifecycle events through architectural primitives built into the platform, combined with a documented operational workflow for higher-risk events.
+
+**Architectural primitives in the MVP**
+
+- **Soft-archive** for councils and locals: archived entities are never hard-deleted. All historical payment data, audit log entries, and reports remain attributable to the original entity indefinitely.
+- **Bulk member reassignment** between councils or locals, with full audit trail. A dry-run mode shows the impact (in-flight payments, recurring subscriptions, refunds in process) before commit.
+- **URL and CNAME redirects** from archived entities to their successors, configurable as part of the reassignment.
+- **Subscription disposition rules** per lifecycle event, configurable to either:
+  - *Continue on the original Stripe account*: existing recurring payments keep charging against the original account; reporting attributes them to the successor going forward via the merger event link. No member action required. Used when the source Stripe account is being retained by the survivor.
+  - *Cancel and re-enroll on the successor's Stripe account*: required when the source Stripe account is being retired, since Stripe subscriptions cannot be moved between accounts. Members are notified and re-authorize on the new account within a configurable window.
+- **Lifecycle event records**: each merger, dissolution, or significant reassignment produces an immutable record linking source and destination entities, timestamp, executor, subscription disposition applied, and member-reassignment summary. Reports use these records to keep historical numbers attributable while showing current roll-ups under the successor.
+
+**Self-service vs. runbook**
+
+Routine lifecycle events are self-service for council admins, with dry-run and confirmation. Higher-risk events are runbook-driven and executed by Ashen Rayne under a paid support engagement (see proposal). The split:
+
+| Event | Mechanism |
+|-------|-----------|
+| Member moves between locals in the same council | Council admin self-service |
+| Member moves between councils | Council admin self-service, with confirmation |
+| Local closure with members reassigned within the same council | Council admin self-service, dry-run + confirm |
+| Local migration between councils | Runbook (Ashen Rayne) |
+| Council merger (one or more councils into a survivor) | Runbook (Ashen Rayne) |
+| Council dissolution with no successor | Runbook (Ashen Rayne) |
+
+The MVP intentionally does not include a self-service "merge council" UI. Council-level lifecycle events are rare, high-stakes, and the cost of building a self-service wizard against the cost of getting it wrong does not pay back at the frequency these events occur. Council admins request a council-level event via the support channel; Ashen Rayne executes it under the documented runbook with the council in the loop at each phase.
+
+**Runbook phases for Ashen Rayne-executed events**
+
+1. **Pre-cutover**: identify in-flight payments and pending approvals; inventory recurring subscriptions and their Stripe account placement; agree on the subscription disposition rule with the council; configure URL and CNAME redirects; draft member communication.
+2. **Cutover**: archive source entities, reassign members to destinations, apply subscription disposition rule, apply redirects, write the lifecycle event record.
+3. **Post-cutover**: reconciliation across the affected period, member support window for re-enrollment if the cancel-and-re-enroll path was used, validation that historical reports still resolve correctly.
+
+**Out of scope for the MVP**
+
+- A self-service merger or council-dissolution UI for council admins
+- Automatic re-enrollment of members on a new Stripe account (Stripe and payment regulations require explicit member authorization for subscriptions on a new account)
+
 ---
 
 ## 4. Out of Scope (MVP)
@@ -313,6 +353,8 @@ The estimates and approach in this document depend on the following assumptions.
 | External approval system (Phase 2) outage stalls payment finalization | Medium | Manual override always available; configurable timeout fallback (auto-approve, auto-reject, or manual queue); clear shared-responsibility documentation |
 | Third-party cookie restrictions in browsers and mobile WebViews break embedded SSO sessions | Medium-high if iframes/WebViews are used | The platform avoids in-frame payment entirely: top-level navigation or popup for council site embeds, system-browser handoff for the UBC mobile app (see section 3.14). Both patterns sidestep the third-party cookie surface |
 | UBC mobile app deep-link configuration drifts after a UBC app update, breaking return-to-app on payment completion | Low | Deep-link target is configurable in the platform admin; UBC app and platform agree on a versioned link scheme; smoke test included in UBC's release checklist |
+| Council merger or dissolution causes loss of historical attribution, member confusion, or orphaned recurring payments | Medium-high if mishandled | Soft-archive (no hard deletes); immutable lifecycle event records linking source and destination; runbook-driven cutover with member communication; subscription disposition rule decided up front per event (see section 3.15) |
+| Members do not re-authorize subscriptions in time after a "cancel and re-enroll" lifecycle event, falling past-due | Medium | Configurable re-authorization window with multiple reminder emails; dunning suppression during the window; council-admin visibility into who has not yet re-enrolled; fallback to one-time invoicing for members who lapse |
 
 ---
 

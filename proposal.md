@@ -102,6 +102,10 @@ So a platform with 5 active councils, each on the default 1 – 2 Stripe account
 
 Each new council added after the pilot involves Stripe Connect onboarding assistance, branding setup, email template configuration, role and permission setup, admin training (one session for council admins, one for bookkeepers), and a soak window with us watching for issues. Charged once per council at onboarding.
 
+**Lifecycle event support: $1,500 – $5,000 per event**
+
+Council mergers, council dissolutions, and cross-council local migrations are executed by us under a documented runbook (pre-cutover checklist, member communication, subscription disposition, cutover, post-cutover reconciliation, and a member support window). Pricing scales with the size and complexity of the event: a small local migration between councils sits at the low end; a multi-Stripe-account council merger with thousands of members and active recurring payments sits at the high end. Quoted per event before work begins. Routine reassignments (members between locals, simple local closures within a council) are self-service for council admins and not separately billed.
+
 **Out-of-scope work: $150 / hour**
 
 Anything beyond the included monthly hours, or work that doesn't fit a small enhancement (new report, new integration, custom workflow), is quoted hourly or as a fixed-price change order. Your choice.
