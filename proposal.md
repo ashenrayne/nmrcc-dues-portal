@@ -80,11 +80,23 @@ Includes:
 - Dependency and security patching on a quarterly cadence
 - Quarterly check-in on platform health, council adoption, and roadmap
 
-**Per active council: $300 / month**
+**Per active council: $300 / month** (covers 1 – 2 Stripe accounts)
 
-Each council on the platform after the first adds modest operational overhead: additional monitoring scope, support volume, council-specific Stripe questions, branding adjustments, role tweaks, and so on. The first council is included in the base fee.
+Each council on the platform after the first adds modest operational overhead: additional monitoring scope, support volume, council-specific Stripe questions, branding adjustments, role tweaks, and so on. The first council is included in the base fee. The $300 covers up to 2 Stripe accounts per council, which fits the typical case: one shared council Stripe account, optionally plus a single local-owned account.
 
-So a platform with 5 active councils runs **$900 + (4 × $300) = $2,000 / month** in support.
+**Additional Stripe accounts: +$25 / month per additional 2 accounts**
+
+If a council operates more Stripe accounts (for example, several locals running their own), the per-account operational load grows: separate KYC reverification, webhooks, payouts, and reconciliation per account. The per-council fee scales in $25 steps:
+
+| Stripe accounts on the council | Per-council monthly fee |
+|--------------------------------|-------------------------|
+| 1 – 2 | $300 |
+| 3 – 4 | $325 |
+| 5 – 6 | $350 |
+| 7 – 8 | $375 |
+| 9 – 10 | $400 |
+
+So a platform with 5 active councils, each on the default 1 – 2 Stripe accounts, runs **$900 + (4 × $300) = $2,000 / month** in support. A council with, say, 6 Stripe accounts adds $50 to its line ($350 instead of $300).
 
 **Per-council onboarding (one-time): $1,200**
 
