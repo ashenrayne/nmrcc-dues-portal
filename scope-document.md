@@ -219,7 +219,57 @@ Permissions are stored as flags so that custom role variants can be created if a
 
 ### 3.10 Notifications
 
-Transactional emails sent by the platform include payment receipts (sent immediately on successful charge), payment failures, upcoming recurring charges (especially for ACH), expiring card warnings, past-due notices, and recurring canceled or completed. Each email is templated with per-council branding and customizable copy. Email delivery is via UBC's existing internal mail relay; the platform sends through UBC's relay rather than a separate third-party email provider. Relay configuration (address, port, authentication, sending domain) is confirmed during discovery.
+The platform sends transactional emails to members and to council admins/ops staff. All emails are templated with per-council branding and customizable copy. Email delivery is via UBC's existing internal mail relay; the platform sends through UBC's relay rather than a separate third-party email provider. Relay configuration (address, port, authentication, sending domain) is confirmed during discovery.
+
+The **Configurability** column below uses the following shorthand:
+
+- **Copy**: the email subject, body, and branding can be customized by the council
+- **Timing**: the trigger interval or threshold (e.g., days before, days after) is configurable
+- **On/off**: the council can disable the email entirely
+- **Intervals**: multi-send schedules (e.g., 30/14/7 days) are configurable
+- **Cadence**: digest schedule (daily, weekly, monthly) is configurable
+- **Threshold**: alert threshold count or duration is configurable
+- **Recipients**: which roles receive the email is configurable
+
+Rows that say *cannot disable* in the configurability column are required for compliance, payment-method maintenance, or council operations and are delivered regardless of council preference; copy can still be customized.
+
+#### Member Emails
+
+| Event | Trigger (default) | Content summary | Configurability |
+|-------|-------------------|-----------------|-----------------|
+| Welcome | First successful sign-in to the portal | Account confirmation, link to manage payment methods, council contact | Copy, on/off |
+| Recurring enrollment confirmation | Member enrolls in recurring | Cadence, next charge date, amount, payment method (last 4), manage/cancel link | Copy |
+| Payment receipt | Successful Stripe charge | Amount, date, payment method (last 4), council and local, payment ID, downloadable PDF | Copy only (cannot disable; required for member records) |
+| Upcoming ACH/PAD charge | 3 calendar days before scheduled bank-debit charge | Amount, date, payment method, manage/cancel link | Copy, timing, on/off |
+| Card expiring soon | 30, 14, and 7 days before stored card expiry on an active subscription | Last 4, expiry month/year, link to update payment method | Copy, intervals, on/off |
+| Payment failed (first attempt) | Stripe `charge.failed` on a recurring charge | Reason, retry schedule, link to update payment method | Copy |
+| Payment failed (retries exhausted) | Stripe Smart Retries exhausted | Action required, dunning timeline, contact path | Copy |
+| Past-due notice | Configurable: default 7 days after retries exhausted | Outstanding amount, payment link, council contact for hardship | Copy, timing, on/off |
+| Recurring canceled (member-initiated) | Member cancels subscription | Confirmation, last/next charge, re-enroll link | Copy, on/off |
+| Recurring canceled (system-initiated) | Cancellation after dunning escalation per council policy | Reason, contact council, re-enroll link | Copy |
+| Recurring paused / resumed | Member pauses or resumes subscription | Confirmation, what changes, when next charge resumes | Copy, on/off |
+| Payment method updated | Member updates saved payment method | Confirmation, last 4 of new method | Copy, on/off |
+| Re-authorization required (lifecycle event) | Cancel-and-re-enroll triggered by a lifecycle event (section 3.15) | Reason for change, deadline, re-enroll link | Copy, timing |
+| Re-authorization reminder | 7 days before re-auth deadline (configurable; multiple sends) | Reminder, deadline, re-enroll link | Copy, timing, intervals |
+
+#### Admin and Ops Emails
+
+| Event | Recipient | Trigger (default) | Content summary | Configurability |
+|-------|-----------|-------------------|-----------------|-----------------|
+| Approval queue daily digest | Council Bookkeeper, Local Bookkeeper | 8am Eastern weekdays | Pending count, oldest item age, link to queue | Copy, time, cadence, on/off |
+| Approval queue threshold breach | Council Bookkeeper | Pending count exceeds configurable threshold (default 100) | Pending state plus alert framing | Copy, threshold, on/off |
+| Approval queue escalation | Council Admin | Item pending more than configured business days (per section 3.8) | Specific item(s), age, member, link | Copy, threshold |
+| Anomalous payment flagged | Council Bookkeeper, Local Bookkeeper | Anomaly rule fires (per section 3.8) | Payment ID, anomaly reason, link | Copy, on/off |
+| Refund issued | Council Admin | Refund processed | Member, amount, reason, executor, payment link | Copy, on/off |
+| Dispute / chargeback opened | Council Admin, Council Bookkeeper | Stripe `charge.dispute.created` | Member, amount, dispute reason, deadline to respond, Stripe dashboard link | Copy only (cannot disable; council must respond within Stripe's deadline) |
+| Stripe payout received | Council Admin (council-owned account) or Local Admin (local-owned account) | Stripe `payout.paid` | Amount, date, account, link to reconciliation view | Copy, on/off |
+| KYC reverification required | Council Admin (council-owned account) or Local Admin (local-owned account) | Stripe `account.updated` indicates verification needed | Account, requirements, deadline, Stripe link | Copy only (cannot disable; payouts blocked otherwise) |
+| Webhook backlog alert | Council Admin | Backlog exceeds threshold or oldest unprocessed event exceeds duration | Backlog summary, link to event log | Copy, threshold |
+| UBC sync error or rate divergence | Council Admin | Sync run fails or detects divergence above threshold (per section 3.4) | Members affected, divergence summary, link to admin tooling | Copy, threshold |
+| Reconciliation report ready | Council Admin, Council Auditor | Monthly (configurable) | Period summary, payouts vs. payments, download link | Copy, cadence, recipients |
+| Past-due member report | Council Admin | Weekly (configurable) | Past-due roster, totals, download link | Copy, cadence, on/off |
+| Lifecycle event executed | Council Admin of source and destination | Lifecycle event record written (per section 3.15) | Event summary, member-reassignment summary, post-cutover checklist link | Copy |
+| Council settings changed | Council Admin | Significant settings change (branding, approval policy, role assignments, Stripe account add/remove) | What changed, by whom, when | Copy, on/off, which settings |
 
 SMS notifications are out of scope for the MVP.
 
@@ -322,6 +372,21 @@ The MVP intentionally does not include a self-service "merge council" UI. Counci
 
 - A self-service merger or council-dissolution UI for council admins
 - Automatic re-enrollment of members on a new Stripe account (Stripe and payment regulations require explicit member authorization for subscriptions on a new account)
+
+### 3.16 Testing and Quality Assurance
+
+The platform handles member dues across multiple legal entities and Stripe accounts; correctness in the payment paths is a first-class delivery commitment. The MVP includes the following testing layers:
+
+- **Unit tests** for business logic where bugs would change financial outcomes: rate updates applied from the UBC sync, subscription update logic, approval workflow state transitions, dunning timing and suppression, lifecycle event reassignment logic, and Stripe webhook idempotency.
+- **Integration tests** for the boundaries where the platform meets external systems: Stripe webhook handling end-to-end, Postgres Row-Level Security policy enforcement, the UBC sync path (against recorded fixtures if a UBC test environment is not available), and the approval plugin interface.
+- **End-to-end tests** (Playwright) for the critical member and admin paths: one-time payment, recurring enrollment, payment method update, refund processing, approval workflow (approve and reject), and the council admin sign-in flow.
+- **Cross-tenant isolation tests** running in CI on every commit. These verify that no admin or member can read or write data belonging to another council or unrelated local. This is the highest-stakes correctness property in the system and is treated accordingly.
+- **Manual QA** for items that do not automate well: accessibility (keyboard navigation, screen reader behavior on the critical paths), per-council branding correctness across all delivery surfaces (per section 3.14), email rendering across major clients, and the bookkeeper queue UX under realistic data volumes.
+- **Security review** of the codebase and configuration before pilot launch, focused on the auth and RLS surface, Stripe webhook signature verification, the embed and widget cross-origin behavior, and the absence of cross-tenant data exposure.
+
+The platform commits to coverage of *what gets tested* (the critical paths above) rather than a percentage-of-lines-covered target. Coverage targets without a specification of what is covered tend to incentivize coverage-padding tests that do not catch real bugs; specifying the paths that must remain green is more honest about what is being delivered.
+
+Test failures block deploys. The CI pipeline runs the unit, integration, and cross-tenant suites on every commit, with a deploy-gating policy that prevents merging or deploying code that breaks any of them. End-to-end tests run on every merge to the main branch and on a nightly schedule against a deployed environment.
 
 ---
 
@@ -450,6 +515,8 @@ The MVP is accepted when:
 - All in-scope items in section 3 are implemented, tested, and demonstrated to the client
 - The pilot council has processed live payments in production for an agreed period without critical issues
 - Cross-tenant isolation tests pass in CI on every build
+- All test suites described in section 3.16 (unit, integration, end-to-end) pass in CI for the version delivered for sign-off
+- Security review (per section 3.16) is complete and any findings are resolved or accepted with a documented mitigation
 - The audit log captures all admin and bookkeeper actions described in section 3.11
 - Open production issues are categorized; no severity-1 issues remain open at sign-off
 
