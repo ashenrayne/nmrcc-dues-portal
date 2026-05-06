@@ -78,7 +78,7 @@ Includes:
 - Production monitoring with on-call response during business hours (Mon – Fri, 8am – 6pm Eastern)
 - Up to 6 hours / month of small enhancements, bug fixes, and support questions (not cumulative)
 - Dependency and security patching on a quarterly cadence
-- Quarterly check-in on platform health, council adoption, and roadmap
+- As needed check-in on platform health, council adoption, and roadmap
 
 **Per active council: $300 / month** (covers 1 – 2 Stripe accounts)
 
