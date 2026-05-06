@@ -386,7 +386,7 @@ The platform handles member dues across multiple legal entities and Stripe accou
 
 The platform commits to coverage of *what gets tested* (the critical paths above) rather than a percentage-of-lines-covered target. Coverage targets without a specification of what is covered tend to incentivize coverage-padding tests that do not catch real bugs; specifying the paths that must remain green is more honest about what is being delivered.
 
-Test failures block deploys. The CI pipeline runs the unit, integration, and cross-tenant suites on every commit, with a deploy-gating policy that prevents merging or deploying code that breaks any of them. End-to-end tests run on every merge to the main branch and on a nightly schedule against a deployed environment.
+Test failures block deploys. The CI pipeline runs the unit, integration, and cross-tenant suites on every commit, with a deploy-gating policy that prevents merging or deploying code that breaks any of them. End-to-end tests run on every merge to the main branch.
 
 ---
 
