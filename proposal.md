@@ -86,7 +86,7 @@ Each council on the platform after the first adds modest operational overhead: a
 
 **Additional Stripe accounts: +$25 / month per additional 2 accounts**
 
-If a council operates more Stripe accounts (for example, several locals running their own), the per-account operational load grows: separate KYC reverification, webhooks, payouts, and reconciliation per account. The per-council fee scales in $25 steps:
+If a council operates more Stripe accounts (for example, several locals running their own), the dominant cost driver is support, not engineering. Each independent Stripe account typically brings its own bookkeeper or admin contact, which means more people coming to us directly with questions about payouts, reconciliation, KYC reverification, disputes, and onboarding edge cases specific to their account. There is real technical overhead too (separate webhooks, separate Stripe dashboards to monitor, separate reconciliation flows), but the bigger driver is the people footprint we are committing to support. The per-council fee scales in $25 steps:
 
 | Stripe accounts on the council | Per-council monthly fee |
 |--------------------------------|-------------------------|
