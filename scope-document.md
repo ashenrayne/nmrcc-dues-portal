@@ -96,11 +96,46 @@ Payment types supported:
 
 Stripe Smart Retries handle transient failures. Webhook events from Stripe are stored in an event log, processed idempotently, and exposed to ops for replay where needed.
 
-### 3.4 Dues Amount Handling
+### 3.4 Dues Amount Handling and Changes
 
-Dues are a fixed amount per member per billing period and do not change on a regular basis. The amount applicable to a given member is determined from data provided by UBC SSO or council configuration at the time of payment, and the same amount is used for both one-time payments and each occurrence of a recurring payment.
+Dues are a fixed amount per member per billing period and do not change on a regular basis. The amount applicable to a given member is determined from data provided by UBC SSO or council configuration at the time of payment, and the same amount is used for both one-time payments and each occurrence of a recurring payment. Recurring payments are implemented via fixed-amount Stripe Subscriptions rather than periodic invoicing.
 
-Because dues are fixed per member, recurring payments are implemented using fixed-amount Stripe Subscriptions rather than periodic invoicing. When a member's dues amount is updated by the council (for example, on an annual rate change), the affected subscriptions are updated to the new amount on the next billing cycle.
+Dues amounts change for two reasons:
+
+- **Council-wide rate changes**: a council adjusts the dues rate that applies to a class of members. Examples: an annual rate increase, or a separate rate for a member status change (apprentice, journeyman, retired, etc.).
+- **Per-member adjustments**: an individual member's amount is changed by an authorized admin, for example a hardship adjustment or a correction.
+
+Both paths flow through the same change-handling workflow described below.
+
+**Effective-date semantics**
+
+Each rate change has a configurable effective date. The new amount applies to the next regularly-scheduled charge on or after the effective date.
+
+**Member notification is the council's responsibility**
+
+Advance member notification of recurring-amount changes (where required by NACHA, PAD, or council policy) is handled by the council outside the platform. The platform does not send advance-notice emails for rate changes; it applies the new amount on the configured effective date and emits the standard payment receipt when the new amount is charged. The council is responsible for ensuring its own notice channel meets the applicable regulatory minimum before a recurring amount changes.
+
+**Re-authorization rules**
+
+Most rate changes do not require new member authorization. The platform requires re-authorization in the following cases:
+
+- A change in funding source (member moves to a local with a different Stripe account; the existing subscription is cancelled and re-enrolled, per section 3.15)
+- A change in cadence (monthly to quarterly, etc.)
+- A council-policy-defined "substantial increase" threshold, configurable as a percentage or absolute amount
+
+When re-authorization is required, the existing subscription is cancelled at end-of-cycle and the member is prompted to re-enroll on the new amount and terms. The re-enrollment flow makes the reason for the change visible to the member.
+
+**Member recourse**
+
+A member who wants to update their payment method, change cadence, pause, or cancel a subscription in response to a rate change can do so at any time from their payment management page in the portal. The platform does not gate or delay rate changes pending member acknowledgement.
+
+**Failure handling**
+
+If the new amount fails to charge (for example, insufficient funds when an increase pushes past the member's available balance), the platform applies its normal dunning process (Stripe Smart Retries plus the configured dunning notifications). The failure is also flagged in the admin dashboard with a rate-change-related indicator so council support can prioritize follow-up.
+
+**Audit trail**
+
+Every dues amount change is recorded in the audit log (section 3.11) with the source (council-wide rate change, individual adjustment, status reclassification), the affected scope (which members and which subscriptions), the effective date, the executor, and the disposition of any required re-authorizations.
 
 ### 3.5 Member Experience
 
@@ -177,7 +212,7 @@ SMS notifications are out of scope for the MVP.
 Three distinct logging channels are established:
 
 - **Application logs** for engineering: errors, performance, request traces. Routed to AWS CloudWatch Logs.
-- **Audit log** for compliance and trust: who did what, when, with what reason. Visible to admins, immutable, exportable. Includes role assignments, refunds, credit adjustments, approvals and reversals, settings changes, and login events.
+- **Audit log** for compliance and trust: who did what, when, with what reason. Visible to admins, immutable, exportable. Includes role assignments, refunds, credit adjustments, approvals and reversals, dues amount changes (with source, scope, effective date, and re-authorization disposition; see section 3.4), lifecycle events such as council mergers and member reassignments (see section 3.15), settings changes, and login events.
 - **Payment event log** for support and ops: every Stripe webhook, every charge attempt, every state transition on a payment, with full payload preserved. Critical for investigating individual member issues.
 
 Webhooks are processed idempotently with a manual replay tool for ops use during incident recovery.
@@ -284,6 +319,8 @@ The following are explicitly excluded from the MVP. Items marked **Phase 2** are
 - **Manual / offline payment recording**: the platform tracks digital payments only. Checks, cash, and money orders received outside the platform are not entered into the system; councils continue to handle those through their existing bookkeeping processes.
 - **Native mobile applications built by Ashen Rayne**: the MVP does not include a separate iOS or Android app. The platform does support UBC's existing React Native app via the system-browser handoff pattern in section 3.14. Native in-app payment via the Stripe React Native SDK is a Phase 2 candidate.
 - **In-page iframe payment** in council websites: see section 3.14 for the supported widget pattern.
+- **Advance-notice emails for dues rate changes** to members. Notification of rate changes (where regulatorily required or by council policy) is handled by the council outside the platform; see section 3.4. Standard payment receipts are still sent for each successful charge.
+- **Proration of mid-cycle rate changes**: rate changes apply to the next regularly-scheduled charge after the effective date. The platform does not generate one-time mid-cycle charges or credits to settle the difference at change time.
 - **In-app WebView payment** in UBC's React Native app: see section 3.14 for the supported system-browser handoff.
 - **In-app messaging between members and admins**: email is the communication channel.
 - **SMS notifications.**
@@ -327,7 +364,8 @@ The estimates and approach in this document depend on the following assumptions.
 
 - UBC provides a documented SSO mechanism (OIDC, SAML, or equivalent) with reasonable availability, and exposes a queryable API or feed for member dues balances.
 - UBC's dues balance data is sufficient to determine what a member owes at the time of payment. The portal does not need to compute dues from raw inputs (hours, status, rate tables).
-- Dues amounts are fixed per member per billing period and do not change on a regular basis. Annual or occasional rate changes are applied to subscriptions on the next billing cycle.
+- Dues amounts are fixed per member per billing period and do not change on a regular basis. Annual or occasional rate changes are applied to subscriptions on the next billing cycle on or after the configured effective date.
+- Advance notification of recurring-amount changes (where required by NACHA, PAD, or council policy) is performed by the council outside the platform. The platform applies the new amount on the configured effective date and does not send advance-notice emails for rate changes.
 - The MVP supports both US and Canadian councils. US councils settle in USD via US Stripe accounts; Canadian councils settle in CAD via Canadian Stripe accounts. Each council operates in a single currency.
 - Each council can complete Stripe Connect onboarding (including business verification) for their own account(s). The platform facilitates this but cannot complete it on the council's behalf.
 - Councils that elect a per-council CNAME subdomain provide the DNS configuration (CNAME record pointing at the platform's endpoint).
@@ -355,6 +393,7 @@ The estimates and approach in this document depend on the following assumptions.
 | UBC mobile app deep-link configuration drifts after a UBC app update, breaking return-to-app on payment completion | Low | Deep-link target is configurable in the platform admin; UBC app and platform agree on a versioned link scheme; smoke test included in UBC's release checklist |
 | Council merger or dissolution causes loss of historical attribution, member confusion, or orphaned recurring payments | Medium-high if mishandled | Soft-archive (no hard deletes); immutable lifecycle event records linking source and destination; runbook-driven cutover with member communication; subscription disposition rule decided up front per event (see section 3.15) |
 | Members do not re-authorize subscriptions in time after a "cancel and re-enroll" lifecycle event, falling past-due | Medium | Configurable re-authorization window with multiple reminder emails; dunning suppression during the window; council-admin visibility into who has not yet re-enrolled; fallback to one-time invoicing for members who lapse |
+| Council fails to send NACHA-compliant or Canadian-PAD-compliant advance notice for a recurring dues amount change before the new amount charges, exposing the council to compliance penalties or returned debits | Medium | Advance notification is the council's responsibility and is handled outside the platform (per section 3.4 and section 6 assumptions); the responsibility split is documented and covered in council admin onboarding/training; rate-change effective dates are configurable with sufficient lead time so the council can run its notification process before the platform applies the change |
 
 ---
 

@@ -29,7 +29,7 @@ A multi-tenant payments portal for NMRCC and, eventually, other UBC councils and
 
 ## Phase 1: MVP
 
-**Estimated cost: $35,000 – $45,000**
+**Estimated cost: $45,000 – $55,000**
 **Estimated timeline: 6 – 8 weeks from kickoff**
 
 This covers everything in section 3 of the scope: multi-tenant foundation, UBC SSO, Stripe Connect onboarding, card and bank-debit payments, recurring billing, the full admin and bookkeeper experience, the internal approval workflow with its pluggable interface, role-based permissions, audit logging, transactional email with per-council branding, the standard report set, reconciliation, and pilot rollout with NMRCC.
