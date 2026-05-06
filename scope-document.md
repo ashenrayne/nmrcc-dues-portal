@@ -72,7 +72,13 @@ Each council selects during onboarding which surface(s) to enable; both can be a
 
 Members authenticate via the UBC single sign-on. The portal does not manage passwords for members. On first sign-in, a member record is provisioned in the relevant council and local based on UBC's response.
 
-The portal queries UBC to retrieve the member's current dues balance, including any past-due amount. The exact contract for this query (endpoint, authentication, fields returned, refresh frequency) is dependent on UBC documentation and will be confirmed in the discovery phase. The portal treats UBC as the source of truth for what is owed; the portal is the source of truth for what has been paid through the platform.
+The portal queries UBC for member-specific data:
+
+- **Current dues balance** including any past-due amount, retrieved at sign-in for display and as the default for one-time payments
+- **Current dues rate** (the per-period amount used for recurring subscriptions), retrieved at subscription setup and refreshed via the background sync described in section 3.4
+- **Member classification** (the status taxonomy used by the council for dues purposes, such as apprentice, journeyman, or retired), retrieved as part of the SSO claim or as a queryable field
+
+The exact contract for these queries (endpoints, authentication, fields returned, refresh frequency, support for bulk or per-member access) is dependent on UBC documentation and will be confirmed in the discovery phase (open question 1, referenced in section 7). The portal treats UBC as the sole source of truth for what is owed, the dues rate, and member classification. The portal does not maintain its own rate data and does not allow rate changes to be entered or overridden in the portal admin UI. The portal is the source of truth for what has been paid through the platform.
 
 Admins authenticate through a separate flow appropriate to their role (details in section 3.9).
 
@@ -100,12 +106,22 @@ Stripe Smart Retries handle transient failures. Webhook events from Stripe are s
 
 Dues are a fixed amount per member per billing period and do not change on a regular basis. The amount applicable to a given member is determined from data provided by UBC SSO or council configuration at the time of payment, and the same amount is used for both one-time payments and each occurrence of a recurring payment. Recurring payments are implemented via fixed-amount Stripe Subscriptions rather than periodic invoicing.
 
-Dues amounts change for two reasons:
+Dues amounts change for two reasons, both originating in UBC's system:
 
-- **Council-wide rate changes**: a council adjusts the dues rate that applies to a class of members. Examples: an annual rate increase, or a separate rate for a member status change (apprentice, journeyman, retired, etc.).
-- **Per-member adjustments**: an individual member's amount is changed by an authorized admin, for example a hardship adjustment or a correction.
+- **Council-wide rate changes**: a council adjusts the dues rate that applies to a class of members in UBC. Examples: an annual rate increase, or a separate rate for a member status change (apprentice, journeyman, retired, etc.).
+- **Per-member adjustments**: UBC's records reflect a different amount for a specific member, for example following a hardship adjustment or correction recorded in UBC's system.
 
-Both paths flow through the same change-handling workflow described below.
+The platform learns of both kinds of change through the sync described below. The portal does not provide a UI for entering or overriding rates.
+
+**How rate changes reach the platform**
+
+UBC is the sole source of truth for dues rates. The platform stores each active subscription's current rate (the per-period amount Stripe charges) and refreshes it from UBC; council admins do not enter rate changes directly in the portal.
+
+A scheduled job (daily or weekly, configurable) refreshes per-member dues data from UBC for all active subscribers, regardless of whether the member has signed in recently. When UBC's data shows a different rate for a member, the platform queues a subscription rate update for the next charge on or after the effective date. This single mechanism catches all rate changes tracked in UBC's records: annual rate changes applied at the council level, classification changes (e.g., apprentice to journeyman), and per-member adjustments recorded in UBC.
+
+The background sync requires UBC to expose a queryable per-member API or bulk feed (open question 1). If UBC's data is only available at SSO time, rate updates for an active recurring subscription can only happen when the member next signs in. This is an operational limitation rather than a workaround the portal can route around: a member with an active recurring subscription who does not sign in for a year would be charged at the prior rate for that year. UBC providing per-member data access between sign-ins is therefore a prerequisite for reliable rate-change propagation, not an optimization, and is captured in section 7 risks.
+
+The platform does not compute rates from raw inputs (hours, status, rate tables). It stores the rate per subscription as provided by UBC.
 
 **Effective-date semantics**
 
@@ -135,7 +151,7 @@ If the new amount fails to charge (for example, insufficient funds when an incre
 
 **Audit trail**
 
-Every dues amount change is recorded in the audit log (section 3.11) with the source (council-wide rate change, individual adjustment, status reclassification), the affected scope (which members and which subscriptions), the effective date, the executor, and the disposition of any required re-authorizations.
+Every dues amount change is recorded in the audit log (section 3.11) with the source (council-wide rate change in UBC, classification change in UBC, per-member adjustment in UBC), the affected scope (which members and which subscriptions), the effective date, the sync run that detected the change, and the disposition of any required re-authorizations.
 
 ### 3.5 Member Experience
 
@@ -321,6 +337,7 @@ The following are explicitly excluded from the MVP. Items marked **Phase 2** are
 - **In-page iframe payment** in council websites: see section 3.14 for the supported widget pattern.
 - **Advance-notice emails for dues rate changes** to members. Notification of rate changes (where regulatorily required or by council policy) is handled by the council outside the platform; see section 3.4. Standard payment receipts are still sent for each successful charge.
 - **Proration of mid-cycle rate changes**: rate changes apply to the next regularly-scheduled charge after the effective date. The platform does not generate one-time mid-cycle charges or credits to settle the difference at change time.
+- **Council admin entry or override of dues rates** in the portal. UBC is the sole source of truth for dues rates; the portal admin UI does not include a path for entering, overriding, or adjusting rates (see sections 3.2 and 3.4). Rate changes happen in UBC and propagate to the portal via the sync.
 - **In-app WebView payment** in UBC's React Native app: see section 3.14 for the supported system-browser handoff.
 - **In-app messaging between members and admins**: email is the communication channel.
 - **SMS notifications.**
@@ -362,7 +379,7 @@ All items in section 3. A representative sequencing is:
 
 The estimates and approach in this document depend on the following assumptions. If any prove incorrect, scope, timeline, or cost may need adjustment.
 
-- UBC provides a documented SSO mechanism (OIDC, SAML, or equivalent) with reasonable availability, and exposes a queryable API or feed for member dues balances.
+- UBC provides a documented SSO mechanism (OIDC, SAML, or equivalent) with reasonable availability, and exposes a queryable API or feed for per-member dues data (current balance, current rate, classification). Per-member access between sign-ins is a prerequisite for reliable rate-change propagation to active recurring subscriptions, since the portal does not allow rate changes to be entered or overridden in its own admin UI. If UBC can only return data at SSO time, rate updates for active recurring subscriptions will lag until the member next signs in (see section 7 risks).
 - UBC's dues balance data is sufficient to determine what a member owes at the time of payment. The portal does not need to compute dues from raw inputs (hours, status, rate tables).
 - Dues amounts are fixed per member per billing period and do not change on a regular basis. Annual or occasional rate changes are applied to subscriptions on the next billing cycle on or after the configured effective date.
 - Advance notification of recurring-amount changes (where required by NACHA, PAD, or council policy) is performed by the council outside the platform. The platform applies the new amount on the configured effective date and does not send advance-notice emails for rate changes.
@@ -383,6 +400,7 @@ The estimates and approach in this document depend on the following assumptions.
 |------|--------|-----------|
 | UBC SSO outage prevents member sign-in and therefore payment | High | Status page and member communication during outages; in-flight recurring payments continue to charge via stored payment methods independent of SSO; monitor UBC SSO availability and alert on degradation |
 | Stale dues balance from UBC causes duplicate payments or incorrect past-due display | Medium-high | Define explicit handshake on payment success; show last-synced timestamp to members; idempotency on payment intent creation |
+| UBC-side rate change does not propagate to active recurring Stripe subscriptions before the next charge, causing members to be charged the prior amount | Medium-high | Background sync (see section 3.4) refreshes per-member rates between sign-ins on a configurable cadence; reconciliation reports flag rate divergence between UBC and the portal. If UBC does not expose per-member data between sign-ins, propagation depends on member sign-in and is documented as an operational limitation (the portal does not provide a manual override path for rates by design) |
 | Webhook delivery failures cause payments to appear missing | Medium | Webhook event log with manual replay; reconciliation report catches discrepancies; alerting on webhook backlog |
 | Bookkeeper backlog delays UBC balance update, causing the member to still see past due after paying | Medium | Suppress dunning during pending state; backlog escalation to council admin; rely on the source-of-truth handshake (section 7) so balance updates do not depend on bookkeeper turnaround when avoidable |
 | Cross-tenant data leak | High | Row-level security or strict scoping at ORM layer; automated cross-tenant access tests in CI; security review before pilot |
