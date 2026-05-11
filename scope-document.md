@@ -76,7 +76,8 @@ The portal queries UBC for member-specific data:
 
 - **Current dues balance** including any past-due amount, retrieved at sign-in for display and as the default for one-time payments
 - **Current dues rate** (the per-period amount used for recurring subscriptions), retrieved at subscription setup and refreshed via the background sync described in section 3.4
-- **Member classification** (the status taxonomy used by the council for dues purposes, such as apprentice, journeyman, or retired), retrieved as part of the SSO claim or as a queryable field
+- **Member classification** (the trade taxonomy used by the council, such as apprentice, journeyman, or retired), retrieved as part of the SSO claim or as a queryable field
+- **Member status** (good standing, arrears, suspended, withdrawn, honorable withdrawal, deceased, etc.), retrieved as part of the SSO claim or as a queryable field. The portal uses status to gate eligibility for online payment (see section 3.5)
 
 The exact contract for these queries (endpoints, authentication, fields returned, refresh frequency, support for bulk or per-member access) is dependent on UBC documentation and will be confirmed in the discovery phase (open question 1, referenced in section 7). The portal treats UBC as the sole source of truth for what is owed, the dues rate, and member classification. The portal does not maintain its own rate data and does not allow rate changes to be entered or overridden in the portal admin UI. The portal is the source of truth for what has been paid through the platform.
 
@@ -155,7 +156,9 @@ Every dues amount change is recorded in the audit log (section 3.11) with the so
 
 ### 3.5 Member Experience
 
-A signed-in member can:
+**Eligibility for online payment.** Online payment functionality is available only to members whose UBC status is **good standing** or **arrears**. Members with any other status (suspended, withdrawn, honorable withdrawal, deceased, or any value the portal does not explicitly recognize as payment-eligible) are shown a status-and-contact page directing them to their council or local union dues department for support. The page displays the dues-department contact information configured for the member's council and local (see section 3.6). The portal does not attempt to process payments for these members; the contact page replaces the member payment surface. Eligibility is evaluated against the latest UBC status the platform has on file, refreshed via the sync described in section 3.4.
+
+A signed-in member in good standing or in arrears can:
 
 - View their current balance and any past-due amount
 - View their payment history with downloadable PDF receipts
@@ -164,6 +167,8 @@ A signed-in member can:
 - Update or replace their saved payment method
 - Pause, resume, or cancel a recurring payment
 - Receive email notifications for receipts, failures, expiring cards, upcoming charges (especially for ACH), and past-due notices
+
+A signed-in member who is not in good standing or arrears sees the status-and-contact page above, plus read-only access to their prior payment history and receipts (so they can still retrieve records for tax or personal purposes).
 
 ### 3.6 Admin Experience
 
@@ -174,8 +179,8 @@ Council and local admins (and bookkeepers; see section 3.9) have access to a das
 - Export to CSV and Excel
 - Drill-down to a specific payment, showing the full event timeline (initiated, charged, webhook received, approved, receipt sent, etc.) and links to the underlying Stripe charge for support purposes
 - Member view: search and filter members, see member detail, view a member's payment history and recurring schedule, issue a refund or credit (subject to permission)
-- Council settings (council admin only): branding, notification copy, approval policy, Stripe accounts (add, configure, and assign to locals), role assignments
-- Local settings (local admin only, where applicable): local branding overrides, contact information, and (if the local operates its own Stripe account) the configuration for that account
+- Council settings (council admin only): branding, notification copy, approval policy, Stripe accounts (add, configure, and assign to locals), role assignments, and dues-department contact information (displayed to members whose status makes them ineligible for online payment; see section 3.5)
+- Local settings (local admin only, where applicable): local branding overrides, dues-department contact information (displayed to ineligible members per section 3.5), and (if the local operates its own Stripe account) the configuration for that account
 
 ### 3.7 Refunds, Adjustments, and Credits
 
