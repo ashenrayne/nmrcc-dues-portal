@@ -8,7 +8,7 @@
 
 ## 1. Purpose
 
-Ashen Rayne is building a new online dues payment platform for NMRCC, designed to extend to other UBC councils if UBC elects to adopt it more broadly. The platform is a Node.js application backed by PostgreSQL, separate from the PHP applications Ashen Rayne maintains on UBC's DMA server. It will be hosted on UBC-provided infrastructure.
+Ashen Rayne is building a new online dues payment platform for NMRCC, designed to extend to other UBC councils if UBC elects to adopt it more broadly. The preferred path is a Node.js application backed by PostgreSQL, with a Laravel (PHP) fallback if coexisting with the existing Drupal sites on the DMA server is a UBC priority. Either way, the new platform is a separate application from the PHP/Drupal work Ashen Rayne maintains on the DMA server, and will be hosted on UBC-provided infrastructure.
 
 This brief covers the integration surface with UBC's systems, the infrastructure UBC IT needs to provision, the responsibility split, and a short list of open questions.
 
@@ -47,7 +47,7 @@ Transactional emails (receipts, payment failures, expiring card reminders, etc.)
 
 ## 4. Infrastructure we need UBC to provide
 
-The platform is a Node.js 20+ application backed by PostgreSQL 16+.
+The platform is a Node.js 20+ application backed by PostgreSQL 16+. If UBC chooses the Laravel fallback (see section 1), runtime substitutes to PHP 8.2+ with PHP-FPM and nginx; the database, file storage, secrets, networking, observability, CI/CD, and environments sections below apply to both paths.
 
 **4.1 Compute.** Container platform preferred (ECS, EKS, Docker host, etc.); VMs (Ubuntu 22.04+ or RHEL 8+) workable. Two or more instances behind a load balancer for HA. Modest sizing per instance (1-2 vCPU, 2-4 GB RAM).
 
@@ -57,7 +57,7 @@ The platform is a Node.js 20+ application backed by PostgreSQL 16+.
 
 **4.4 Secrets.** Cloud-managed secrets service preferred (AWS Secrets Manager, Azure Key Vault, etc.); HashiCorp Vault workable on VMs. Stores UBC API credentials, platform-level Stripe keys (one set for the whole platform; council accounts are referenced by non-secret `account_id` values in the database), DB credentials, and the SSO client secret. Application reads secrets via service identity; rotation and access auditing required.
 
-**4.5 Background jobs.** Preferred: **Inngest** (managed durable-execution SaaS for retries, scheduled jobs, replay UI). Requires outbound HTTPS to `api.inngest.com` and inbound HTTPS from Inngest's IP ranges. No PII or financial payload crosses the boundary; only event identifiers. This is a third-party SaaS approval question for UBC's vendor policy. Fallback if not acceptable: in-process workers + scheduler + self-hosted Redis on UBC infrastructure (more code to build and operate).
+**4.5 Background jobs.** On the Node.js path, preferred is **Inngest** (managed durable-execution SaaS for retries, scheduled jobs, replay UI). Requires outbound HTTPS to `api.inngest.com` and inbound HTTPS from Inngest's IP ranges. No PII or financial payload crosses the boundary; only event identifiers. This is a third-party SaaS approval question for UBC's vendor policy. Fallback if not acceptable: in-process workers + scheduler + self-hosted Redis on UBC infrastructure (more code to build and operate). On the Laravel path, Laravel Horizon (built into the framework) on self-hosted Redis replaces this section entirely, with no third-party SaaS approval needed.
 
 **4.6 Networking and DNS.** Public HTTPS endpoint for member access and Stripe webhook delivery. Load balancer in front, TLS 1.2+ with automated cert provisioning, WAF or equivalent for basic rate limiting and OWASP rules. DNS for a central UBC dues subdomain (e.g., `dues.carpenters.org`) and per-council subdomains or CNAMEs (e.g., `dues.nmrcc.org`).
 
