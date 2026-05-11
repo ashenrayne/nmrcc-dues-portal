@@ -72,31 +72,7 @@ a {
   }
 
   .page-header {
-    background: #fff !important;
-    background-image: none !important;
-    color: #000;
-    padding: 0 0 0.75rem 0;
-    border-bottom: 3px solid $primary;
-    margin-bottom: 1.5rem;
-    text-align: left;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-
-    .project-name {
-      color: $primary;
-      font-size: 1.6rem;
-      margin: 0;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-
-    .project-tagline {
-      display: none;
-    }
-
-    .btn {
-      display: none;
-    }
+    display: none;
   }
 
   .main-content {
