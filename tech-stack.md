@@ -131,12 +131,25 @@ If UBC has a policy concern about a third-party SaaS handling job orchestration,
 
 ## 8. Observability
 
-- **Application logs** to **CloudWatch Logs** with structured JSON logging. Optionally forwarded to a managed log aggregator (Datadog or similar) if UBC has a preference.
-- **Metrics** to **CloudWatch Metrics**, with custom metrics for payment success rate, webhook lag, approval queue depth, and recurring renewal success rate.
-- **Alarms** on the above with PagerDuty (or UBC-equivalent) integration.
-- **Distributed tracing**: deferred to Phase 2 unless complexity warrants it earlier.
-- **Audit log** is in-database (see section 3); a UI surface is part of the admin dashboard scope.
-- **Payment event log** is queryable from the admin dashboard for support investigations (scope section 3.11).
+The MVP commits to the minimum observability needed to run the service reliably and investigate incidents. The bias is toward surfacing operationally-relevant information inside the application itself, so that council admins, bookkeepers, and Ashen Rayne support can answer most questions without infrastructure access.
+
+**In-application surfaces** (visible to admins per their role; see scope section 3.11 and related):
+
+- **Audit log**: who did what, when, immutable, exportable
+- **Payment event log**: every Stripe webhook, every charge attempt, every state transition on a payment, with full payload preserved and queryable from the admin dashboard
+- **UBC sync log**: each background sync run (started, completed, failed), per-member changes detected, and any errors (per scope section 3.4)
+- **Email delivery log**: per-member record of platform-sent emails (event, timestamp, recipient, result returned by the SMTP relay)
+- **Lifecycle event records**: merger and reassignment history with linked source and destination entities (per scope section 3.15)
+
+These cover most day-to-day investigations without requiring infrastructure access.
+
+**Infrastructure observability** (for Ashen Rayne's operations):
+
+- **CloudWatch Logs** for application logs, with structured JSON logging
+- **CloudWatch built-in metrics** for ALB, ECS, and RDS (request rate, error rate, latency, CPU, memory, connections). No custom application metrics in MVP.
+- **A small set of CloudWatch alarms** for issues that warrant immediate attention: elevated 5xx error rate, ECS task failure, RDS CPU or storage pressure, and webhook event log not advancing. Alarms route to email and/or Slack.
+
+Custom business metrics, log aggregator overlays, dedicated incident management tooling, and distributed tracing are out of scope for the MVP. They are candidates for later phases as platform volume grows.
 
 ---
 
