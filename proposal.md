@@ -2,7 +2,7 @@
 
 **Prepared for:** Northern Midwest Regional Council of Carpenters (NMRCC)
 **Prepared by:** Ashen Rayne
-**Date:** May 6, 2026
+**Date:** May 11, 2026
 
 ---
 
@@ -71,18 +71,19 @@ After launch, NMRCC's ongoing cost has two parts: our support fee and AWS hostin
 
 ### Our support fee (billed to NMRCC initially)
 
-**Base platform support: $900 / month**
+**Base platform support: $600 / month**
 
 Includes:
-- NMRCC as a council
 - Production monitoring with on-call response during business hours (Mon – Fri, 8am – 6pm Eastern)
 - Up to 6 hours / month of small enhancements, bug fixes, and support questions (not cumulative)
 - Dependency and security patching on a quarterly cadence
 - As needed check-in on platform health, council adoption, and roadmap
 
+This base fee covers the platform itself and is billed regardless of how many councils are active. Council-specific support is billed per council below.
+
 **Per active council: $300 / month** (covers 1 – 2 Stripe accounts)
 
-Each council on the platform after the first adds modest operational overhead: additional monitoring scope, support volume, council-specific Stripe questions, branding adjustments, role tweaks, and so on. The first council is included in the base fee. The $300 covers up to 2 Stripe accounts per council, which fits the typical case: one shared council Stripe account, optionally plus a single local-owned account.
+Each active council represents operational overhead: monitoring scope, support volume, council-specific Stripe questions, branding adjustments, role tweaks, and so on. Every council on the platform is billed at this rate, including the first. The $300 covers up to 2 Stripe accounts per council, which fits the typical case: one shared council Stripe account, optionally plus a single local-owned account.
 
 **Additional Stripe accounts: +$25 / month per additional 2 accounts**
 
@@ -96,7 +97,7 @@ If a council operates more Stripe accounts (for example, several locals running 
 | 7 – 8 | $375 |
 | 9 – 10 | $400 |
 
-So a platform with 5 active councils, each on the default 1 – 2 Stripe accounts, runs **$900 + (4 × $300) = $2,000 / month** in support. A council with, say, 6 Stripe accounts adds $50 to its line ($350 instead of $300).
+So a platform with 5 active councils, each on the default 1 – 2 Stripe accounts, runs **$600 + (5 × $300) = $2,100 / month** in support. A platform serving NMRCC alone runs **$600 + $300 = $900 / month**. A council with, say, 6 Stripe accounts adds $50 to its line ($350 instead of $300).
 
 **Per-council onboarding (one-time): $1,200**
 
